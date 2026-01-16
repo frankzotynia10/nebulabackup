@@ -1,0 +1,188 @@
+Frank Zotynia
+6/4/24
+
+******
+Remember to plug in jumper for 120 0hm resistors on both MCU and toolhead board
+******
+
+########################
+### Rp2209 Can Board ###
+########################
+### Rp2209 Katapult install (Bootloader) ###
+
+# clone katapult on RPI
+cd ~
+git clone https://github.com/Arksine/Katapult
+cd katapult
+make menuconfig
+
+### RP2209 Katapult Configuration ###
+Micro-controler architecture - RP2040
+Flashchip - W25Q080 with CLKDIV 2
+Build Katapult Deployment Appilcation - 16KiB bootloader
+Com interface - Canbus
+can rx - GPIO 4
+can tx - GPIO 5
+Can bus speed - 1000000
+support bootloader entry on rapid double clkick
+enable status LED - GPIO26
+
+# Q to exit, Y to save
+
+make clean
+make
+
+# -> Disconnect Can cable and connect usb.  Plug in the usb jumper on the board
+# -> power on and hold boot and tap reset to enter dfu mode
+
+lsusb
+# -> check for Raspberry Pi RP2 Boot and grab the ID
+
+cd ~/katapult
+make flash FLASH_DEVICE=2e8a:0003
+
+# -> remove usb cable and usb jumper. plug cancable back in and power up.
+
+### Rp2209 Klipper install ###
+
+cd ~/klipper
+make menuconfig
+
+### RP2209 Klipper Configuration ###
+[*] Enable extra low-level configuration options
+Micro-controler architecture - RP2040
+Bootloader offset 16KiB bootloader
+Com interface - Canbus
+can rx - GPIO 4
+can tx - GPIO 5
+Can bus speed - 1000000
+Q to exit, Y to save
+
+make clean
+make
+
+# Querry all devices bootloaders
+cd ~/katapult/scripts
+python3 flash_can.py -i can0 -q
+# -> You should see RP2040 with appliation: katapult. copy canbus ID for rp2040 board
+
+# Flash klipper on the RP2209
+python3 flash_can.py -i can0 -f ~/klipper/out/klipper.bin -u {CANBUSIDHERE}
+-> If successful, you will see application: Klipper
+
+##################
+### M8P v2 MCU ###
+##################
+
+### M8P v2 Katapult build (Bootloader) ###
+
+cd ~/katapult
+make menuconfig
+
+### M8P v2 Katapult Configuration ###
+Micro-controller Architecture: STMicroelectronics STM32
+Processor model: STM32H723
+Build Katapult deployment application: Do not build
+Clock Reference: 25 MHz crystal (v2)
+Communication interface: CAN bus (on PD0/PD1)
+Application start offset: 128KiB offset
+CAN bus speed: 1000000
+() GPIO pins to set on bootloader entry
+[*] Support bootloader entry on rapid double click of reset button
+[ ] Enable bootloader entry on button (or gpio) state
+[ ] Enable Status LED
+
+# Q to exit, Y to save
+
+make clean
+make
+
+### M8P v2 Klipper Build ###
+
+cd ~/klipper
+make menuconfig
+
+### M8P v2 Klipper Configuration ###
+Micro-controller Architecture: STMicroelectronics STM32
+Processor model: STM32H723
+Bootloader offset: 128KiB bootloader
+Clock Reference: 25 MHz crystal
+Communication interface: USB to CAN bus bridge (USB on PA11/PA12)
+CAN bus interface: CAN bus (on PD0/PD1)
+CAN bus speed: 1000000
+() GPIO pins to set at micro-controller startup
+
+# Q to exit, Y to save
+
+make clean
+make
+
+### DFU Mode M8P v2 ###
+
+# -> Power down and disconnect canbus cable
+#-> power on and hold boot and tap reset to enter dfu mode
+
+lsusb
+# -> you will see "Bus 001 Device 008: ID 0483:df11 STMicroelectronics STM Device in DFU Mode"
+
+sudo service klipper stop
+
+### Flash Katapult M8P v2 ###
+sudo dfu-util -a 0 -D ~/katapult/out/katapult.bin --dfuse-address 0x08000000:force:leave -d 0483:df11
+
+# -> press reset button
+# -> Hold boot and tap reset to enter dfu mode again
+
+### Flash klipper M8P v2 ###
+sudo dfu-util -a 0 -d 0483:df11 --dfuse-address 0x08002000 -D ~/klipper/out/klipper.bin
+
+# -> Press reset button
+
+lsusb
+# -> You should see "Bus 001 Device 011: ID 1d50:606f OpenMoko, Inc. Geschwister Schneider CAN adapter"
+
+sudo service klipper start
+
+### Can Network Setup on SOC ###
+
+# ifupdown 
+sudo nano /etc/network/interfaces.d/can0
+
+# -> enter this in the can0 file
+allow-hotplug can0
+iface can0 can static
+ bitrate 250000
+ up ifconfig $IFACE txqueuelen 1024
+
+
+# systemd-networkd (Netplan)
+sudo nano /etc/systemd/network/10-can.link
+# -> enter this into the netplan file
+[Match]
+Type=can
+
+[Link]
+TransmitQueueLength=1024
+
+sudo nano /etc/systemd/network/25-can.network
+#-> enter this into the 25-can.network file
+[Match]
+Name=can*
+
+[CAN]
+BitRate=1M
+
+### Klipper cfg ###
+
+# Find canbus ID
+cd ~/katapult/scripts
+python3 flash_can.py -i can0 -q
+
+$ printer.cfg
+[mcu]
+canbus_uuid: <your uuid goes here>
+canbus_interface: can0
+
+[mcu RP2209]
+canbus_uuid: <your uuid goes here>
+canbus_interface: can0
