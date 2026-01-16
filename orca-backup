@@ -1,0 +1,71 @@
+########################
+# MACHINE START G-CODE #
+########################
+
+; =========================================================
+; Disable slicer-managed heating
+; =========================================================
+M104 S0
+M140 S0
+
+; =========================================================
+; Default: disable chamber waits
+; =========================================================
+SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_TEMPERATURE VARIABLE=target_temperature VALUE=0
+SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_NOTIFICATION VARIABLE=target_temperature VALUE=0
+
+; =========================================================
+; Pass Orca filament chamber temperature (per tool)
+; =========================================================
+{if chamber_temperature[initial_tool] > 0}
+  SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_TEMPERATURE VARIABLE=target_temperature VALUE={chamber_temperature[initial_tool]}
+  SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_NOTIFICATION VARIABLE=target_temperature VALUE={chamber_temperature[initial_tool]}
+{endif}
+
+; =========================================================
+; Print metadata
+; =========================================================
+SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]
+
+; =========================================================
+; Enter KM start pipeline
+; =========================================================
+_PRINT_START_PHASE_INIT \
+  EXTRUDER={first_layer_temperature[initial_tool]} \
+  BED={first_layer_bed_temperature[initial_tool]} \
+  TOOL={initial_tool} \
+  MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} \
+  MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} \
+  LAYERS={total_layer_count} \
+  NOZZLE_SIZE={nozzle_diameter[0]}
+
+######################
+# MACHINE END G-CODE #
+######################
+
+PRINT_END
+FILTER_FAN_TIMER
+
+##############################
+# BEFORE LAYER CHANGE G-CODE #
+##############################
+
+;BEFORE_LAYER_CHANGE
+;[layer_z]
+
+#######################
+# LAYER CHANGE G-CODE #
+#######################
+
+;AFTER_LAYER_CHANGE
+;[layer_z]
+SET_PRINT_STATS_INFO CURRENT_LAYER={layer_num}
+
+##########################
+# CHANGE FILAMENT G-CODE #
+##########################
+
+T[next_extruder] PURGE_LENGTH=[flush_length]
+; FLUSH_START
+; EXTERNAL_PURGE {flush_length}
+; FLUSH_END
