@@ -1,0 +1,35 @@
+########################
+# MACHINE START G-CODE #
+########################
+
+; =========================================================
+; Single-tool profile – no AFC, no tool changes
+; Chamber control via Orca filament settings only
+; =========================================================
+
+; Disable slicer-managed heating
+M104 S0
+M140 S0
+
+; Default: disable chamber waits
+SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_TEMPERATURE VARIABLE=target_temperature VALUE=0
+SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_NOTIFICATION VARIABLE=target_temperature VALUE=0
+
+; Enable chamber wait if filament requests it
+{if chamber_temperature[initial_tool] > 0}
+  SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_TEMPERATURE VARIABLE=target_temperature VALUE={chamber_temperature[initial_tool]}
+  SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_NOTIFICATION VARIABLE=target_temperature VALUE={chamber_temperature[initial_tool]}
+{endif}
+
+; Print metadata
+SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]
+
+; Enter Klipper/Moonraker start pipeline
+_PRINT_START_PHASE_INIT \
+  EXTRUDER={first_layer_temperature[initial_tool]} \
+  BED={first_layer_bed_temperature[initial_tool]} \
+  TOOL={initial_tool} \
+  MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} \
+  MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} \
+  LAYERS={total_layer_count} \
+  NOZZLE_SIZE={nozzle_diameter[initial_tool]}
