@@ -2,24 +2,14 @@
 # MACHINE START G-CODE #
 ########################
 
-; default: disable chamber wait for this print
-SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_TEMPERATURE VARIABLE=target_temperature VALUE=0
-SET_GCODE_VARIABLE MACRO=WAIT_FOR_CHAMBER_NOTIFICATION VARIABLE=target_temperature VALUE=0
-
-; If filament requests a chamber temp, use it
-; overall_chamber_temperature is the max chamber temp across all loaded filaments
-{if overall_chamber_temperature > 0}
-  SET_CHAMBER_TEMPERATURE TEMPERATURE={overall_chamber_temperature}
-{endif}
-
-SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]
-
-_PRINT_START_PHASE_INIT EXTRUDER={first_layer_temperature[initial_tool]} BED=[first_layer_bed_temperature] \
-  MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} \
-  MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} \
-  LAYERS={total_layer_count} NOZZLE_SIZE={nozzle_diameter[0]}
-
+M190 S0 ; Remove this if autoemit_temperature_commands is off in Prusa Slicer 2.6 and later
+M109 S0 ; Remove this if autoemit_temperature_commands is off in Prusa Slicer 2.6 and later
+_PRINT_START_PHASE_INIT EXTRUDER={first_layer_temperature[initial_tool]} BED=[first_layer_bed_temperature] MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} LAYERS={total_layer_count} NOZZLE_SIZE={nozzle_diameter[0]}
+; Insert custom gcode here.
 _PRINT_START_PHASE_PREHEAT
+; Insert custom gcode here.
 _PRINT_START_PHASE_PROBING
+; Insert custom gcode here.
 _PRINT_START_PHASE_EXTRUDER
+; Insert custom gcode here.
 _PRINT_START_PHASE_PURGE
