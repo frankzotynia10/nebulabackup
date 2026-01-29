@@ -32,7 +32,7 @@ SET_PRINT_STATS_INFO TOTAL_LAYER=[total_layer_count]
 ; =========================================================
 _PRINT_START_PHASE_INIT \
   EXTRUDER={first_layer_temperature[initial_tool]} \
-  BED={first_layer_bed_temperature[initial_tool]} \
+  BED_TEMP={first_layer_bed_temperature[initial_tool]} \
   TOOL={initial_tool} \
   MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} \
   MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} \
